@@ -11,6 +11,9 @@ spec:
       labels:
         app: cni-plugins
     spec:
+      nodeSelector:   # Add node selector here
+        node-role.kubernetes.io/master: ""
+      hostNetwork: true   # Add host networking configuration
       initContainers:
       - name: copy-cni-plugins
         image: dougbtv/cni-plugins
