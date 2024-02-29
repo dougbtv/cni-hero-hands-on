@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: sample-pod
+spec:
+  containers:
+  - name: alpine-container
+    image: alpine:latest
+    command: ["sleep", "3600"]
