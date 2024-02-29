@@ -11,12 +11,16 @@ spec:
       labels:
         app: cni-plugins
     spec:
-      nodeSelector:   # Add node selector here
-        node-role.kubernetes.io/master: ""
-      hostNetwork: true   # Add host networking configuration
+      # We want to schedule this on all nodes.
+      tolerations:
+      - operator: Exists
+        effect: NoSchedule
+      # We need this so that it can run without flannel.
+      hostNetwork: true
       initContainers:
       - name: copy-cni-plugins
         image: dougbtv/cni-plugins
+        imagePullPolicy: Always
         command:
         - /bin/sh
         - -c
@@ -25,9 +29,13 @@ spec:
         - name: cni-bin
           mountPath: /opt/cni/bin
       containers:
-      - name: alpine-container
-        image: alpine:latest
-        command: ["sleep", "3600"]
+      - name: cni-ref-sleeper
+        image: dougbtv/cni-plugins
+        command: ["sleep", "360000000"]
+        volumeMounts:
+        - name: cni-bin
+          mountPath: /opt/cni/bin
       volumes:
       - name: cni-bin
-        emptyDir: {}
+        hostPath:
+          path: /opt/cni/bin
