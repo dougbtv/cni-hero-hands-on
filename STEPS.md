@@ -45,17 +45,34 @@ And we can see there are CNI configurations...
 ```
 [fedora@knidevel-master cni-hero-hands-on]$ docker exec -it cni-demo-worker /bin/bash
 root@cni-demo-worker:/# ls -lathr /opt/cni/bin/
-total 18M
--rwxr-xr-x. 1 root root 3.4M May 25  2023 host-local
--rwxr-xr-x. 1 root root 3.4M May 25  2023 loopback
--rwxr-xr-x. 1 root root 4.2M May 25  2023 ptp
--rwxr-xr-x. 1 root root 3.8M May 25  2023 portmap
-drwxr-xr-x. 1 root root    6 May 25  2023 ..
-drwxr-xr-x. 1 root root   14 Feb 29 19:43 .
+[...]
 -rwxr-xr-x. 1 root root 2.4M Feb 29 19:43 flannel
 root@cni-demo-worker:/# ls -lathr /etc/cni/net.d/
-total 4.0K
-drwxr-xr-x. 1 root root  10 Jun 15  2023 ..
+[...]
 -rw-r--r--. 1 root root 292 Feb 29 19:43 10-flannel.conflist
-drwx------. 1 root root  38 Feb 29 19:43 .
+```
+
+Actually this works out... Now pods won't come up because we don't have bridge CNI!
+
+```
+kubectl create -f sample-pod.yml 
+kubectl get pods
+kubectl describe pod  sample-pod
+```
+
+Now we can see there's an error in the events from the Kubelet...
+
+```
+Failed to create pod sandbox: rpc error: code = Unknown desc = failed to setup network for sandbox "668c86dda8924fa560d10d47b48c3a9ca16ee5a23471949aeabedaec2f86a2fb": plugin type="flannel" failed (add): failed to delegate add: failed to find plugin "bridge" in path [/opt/cni/bin]
+```
+
+So let's install that ourselves...
+
+
+
+
+Let's check  the kubelet logs...
+```
+docker exec -it cni-demo-worker /bin/bash
+journalctl -u kubelet | grep -i error
 ```
