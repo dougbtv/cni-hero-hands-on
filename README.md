@@ -2,7 +2,7 @@
 
 ## Requirements
 
-* A functional [installation of KIND]()https://kind.sigs.k8s.io/docs/user/quick-start/
+* A functional [installation of KIND](https://kind.sigs.k8s.io/docs/user/quick-start/)
 
 ## All the steps
 
@@ -31,6 +31,14 @@ cd /etc/cni/net.d/
 ls -lathr
 # nothing here!
 ```
+
+## Install Flannel
+
+Flannel @ https://github.com/flannel-io/flannel
+
+From the docs:
+
+> Flannel is a simple and easy way to configure a layer 3 network fabric designed for Kubernetes.
 
 So! Now we've got to install a plugin.
 
@@ -74,13 +82,19 @@ Now we can see there's an error in the events from the Kubelet...
 Failed to create pod sandbox: rpc error: code = Unknown desc = failed to setup network for sandbox "668c86dda8924fa560d10d47b48c3a9ca16ee5a23471949aeabedaec2f86a2fb": plugin type="flannel" failed (add): failed to delegate add: failed to find plugin "bridge" in path [/opt/cni/bin]
 ```
 
+Let's check the kubelet logs...
+```
+docker exec -it cni-demo-worker /bin/bash
+journalctl -u kubelet | grep -i error
+```
+
 Let's delete that pod:
 
 ```
 kubectl delete -f sample-pod.yml 
 ```
 
-So let's install that ourselves...
+So let's install the CNI reference plugins ourselves...
 
 ```
 kubectl create -f reference-cni-plugins.yml
@@ -111,7 +125,6 @@ drwxr-xr-x. 1 root root    6 May 25  2023 ..
 
 Now we can start our sample pod again...
 
-
 ```
 kubectl create -f sample-pod.yml
 kubectl exec -it sample-pod -- ip a
@@ -119,14 +132,63 @@ kubectl exec -it sample-pod -- ip a
 
 And we can see it has IPs!
 
-So let's find it...
+## Installing a custom CNI plugin!
 
+Let's "log in to our host" again, with:
 
-
-
-
-Let's check  the kubelet logs...
 ```
 docker exec -it cni-demo-worker /bin/bash
-journalctl -u kubelet | grep -i error
+```
+
+Then we need to create a new "binary" -- it's actually just a bash script. 
+
+```
+cat >/opt/cni/bin/dummy <<EOF
+#!/bin/bash
+logit () {
+  echo "\$1" >> /tmp/cni-inspect.log
+}
+
+logit "CNI_COMMAND: \$CNI_COMMAND"
+logit "CNI_CONTAINERID: \$CNI_CONTAINERID"
+logit "CNI_NETNS: \$CNI_NETNS"
+logit "CNI_IFNAME: \$CNI_IFNAME"
+logit "CNI_ARGS: \$CNI_ARGS"
+logit "CNI_PATH: \$CNI_PATH"
+logit "-------------- Begin config"
+while IFS= read -r line
+do
+  logit "\$line"
+done
+logit "-------------- End config"
+EOF
+```
+
+Make it executable...
+
+
+```
+chmod +x /opt/cni/bin/dummy
+```
+
+Now we need a configuration for it...
+
+Let's look at where our CNI configuration is.
+
+```
+$ ls /etc/cni/net.d/ -1
+10-flannel.conflist
+```
+
+Since this is named `10-flannel` what we'll do is make ours ascii-betically first, so we can remove it later and restore the original functionality to the cluster...
+
+
+```
+cat >/etc/cni/net.d/00-dummy.conf <<EOF
+{
+    "cniVersion": "0.2.0",
+    "name": "my_dummy_network",
+    "type": "dummy"
+}
+EOF
 ```
