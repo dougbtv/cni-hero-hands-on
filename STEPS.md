@@ -105,8 +105,15 @@ Now we can start our sample pod again...
 
 
 ```
-
+kubectl create -f sample-pod.yml
+kubectl exec -it sample-pod -- ip a
 ```
+
+And we can see it has IPs!
+
+So let's find it...
+
+
 
 
 Let's check  the kubelet logs...
