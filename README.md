@@ -179,6 +179,24 @@ logit "CNI_PATH: $CNI_PATH"
 logit "-- cni config"
 stdin=$(cat /dev/stdin)
 logit "$stdin"
+# Just a valid response with fake info.
+echo '{
+  "cniVersion": "0.3.1",
+  "interfaces": [                                            
+      {
+          "name": "eth0",
+          "sandbox": "'"$CNI_NETNS"'" 
+      }
+  ],
+  "ips": [
+      {
+          "version": "4",
+          "address": "192.0.2.22/24",
+          "gateway": "192.0.2.1",          
+          "interface": 0 
+      }
+  ]
+}'
 EOF
 ```
 
@@ -209,3 +227,35 @@ cat >/etc/cni/net.d/00-dummy.conf <<EOF
 EOF
 ```
 
+Now we can create a pod and use it...
+
+```
+kubectl create -f sample-pod.yml 
+```
+
+And we'll see that we wrote a log!
+
+```
+docker exec -it cni-demo-worker tail -n 9 /tmp/cni-inspect.log
+-------------- CNI call for ADD on e87f933443a325562c3154c4d1e37c5d5aaa03f768e5b07a43d2528c12014d13
+CNI_COMMAND: ADD
+CNI_CONTAINERID: e87f933443a325562c3154c4d1e37c5d5aaa03f768e5b07a43d2528c12014d13
+CNI_NETNS: /var/run/netns/cni-5308e6f0-46ec-f4f9-775b-80aabeef9cc6
+CNI_IFNAME: eth0
+CNI_ARGS: K8S_POD_INFRA_CONTAINER_ID=e87f933443a325562c3154c4d1e37c5d5aaa03f768e5b07a43d2528c12014d13;K8S_POD_UID=575b0c17-91e2-432a-99d4-9e774e7df1f5;IgnoreUnknown=1;K8S_POD_NAMESPACE=default;K8S_POD_NAME=sample-pod
+CNI_PATH: /opt/cni/bin
+-- cni config
+{"cniVersion":"0.2.0","name":"my_dummy_network","type":"dummy"}
+```
+
+And our pod is just a placeholder of networking, it only has a loopback:
+
+```
+$ kubectl exec -it sample-pod -- ip a
+1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 qdisc noqueue state UNKNOWN qlen 1000
+    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
+    inet 127.0.0.1/8 scope host lo
+       valid_lft forever preferred_lft forever
+    inet6 ::1/128 scope host 
+       valid_lft forever preferred_lft forever
+```
