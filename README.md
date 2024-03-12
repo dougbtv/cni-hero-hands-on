@@ -1,5 +1,9 @@
 # From CNI Zero to CNI Hero: The Hands on tutorial
 
+You can watch the demo here!
+
+[![asciicast](https://asciinema.org/a/AS9TqisZjMp3f8j35ym6K97b1.svg)](https://asciinema.org/a/AS9TqisZjMp3f8j35ym6K97b1)
+
 ## Requirements
 
 * A functional [installation of KIND](https://kind.sigs.k8s.io/docs/user/quick-start/)
@@ -71,9 +75,7 @@ root@cni-demo-worker:/# ls -lathr /etc/cni/net.d/
 We're so close, but so far away... Now pods won't come up:
 
 ```
-kubectl create -f sample-pod.yml 
-kubectl get pods
-kubectl describe pod sample-pod
+kubectl describe pod coredns-xyz
 ```
 
 Now we can see there's an error in the events...
