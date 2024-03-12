@@ -26,9 +26,7 @@ We notice that they're not ready. So, let's take a look inside...
 
 ```bash
 docker ps
-docker exec -it cni-demo-worker /bin/bash
-cd /etc/cni/net.d/
-ls -lathr
+docker exec -it cni-demo-worker ls -lathr /etc/cni/net.d/
 # nothing here!
 ```
 
@@ -42,8 +40,8 @@ From the docs:
 
 So! Now we've got to install a plugin.
 
-```
-kubectl create -f kube-flannel.yml
+```bash
+kubectl create -f https://github.com/flannel-io/flannel/releases/download/v0.24.3/kube-flannel.yml
 ```
 
 Now we can see that the nodes are ready:
@@ -86,10 +84,11 @@ Failed to create pod sandbox: rpc error: code = Unknown desc = failed to setup n
 
 *NOTE*: The `bridge` CNI plugin isn't required for all installations. The architecture of Flannel CNI uses other CNI plugins behind the scenes that it "delegates" to. In our case, from a user/administrator perspective, we might not have known this until we execute this code, that is, if we aren't familiar with the code of Flannel.
 
-Let's check the kubelet logs...
+Let's check the kubelet and containerd logs...
 ```
 docker exec -it cni-demo-worker /bin/bash
 journalctl -u kubelet | grep -i error
+journalctl -u containerd | grep -i error
 ```
 
 Let's delete that pod:
@@ -220,7 +219,7 @@ Since this is named `10-flannel` what we'll do is make ours ascii-betically firs
 ```
 cat >/etc/cni/net.d/00-dummy.conf <<EOF
 {
-    "cniVersion": "0.2.0",
+    "cniVersion": "0.3.1",
     "name": "my_dummy_network",
     "type": "dummy"
 }
@@ -258,4 +257,14 @@ $ kubectl exec -it sample-pod -- ip a
        valid_lft forever preferred_lft forever
     inet6 ::1/128 scope host 
        valid_lft forever preferred_lft forever
+```
+
+But `kubectl get pod -o wide` command shows that Pod's IP is `192.0.2.22`!
+
+```
+$ kubectl get pod -o wide
+NAME                          READY   STATUS    RESTARTS   AGE   IP           NODE                     NOMINATED NODE   READINESS GATES
+cni-plugins-daemonset-fjcfg   1/1     Running   0          11m   172.18.0.2   cni-demo-control-plane   <none>           <none>
+cni-plugins-daemonset-hmdr5   1/1     Running   0          11m   172.18.0.3   cni-demo-worker          <none>           <none>
+sample-pod                    1/1     Running   0          27s   192.0.2.22   cni-demo-worker          <none>           <none>
 ```
