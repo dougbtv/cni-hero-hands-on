@@ -2,7 +2,7 @@
 
 You can watch the demo here!
 
-[![asciicast](https://asciinema.org/a/AS9TqisZjMp3f8j35ym6K97b1.svg)](https://asciinema.org/a/AS9TqisZjMp3f8j35ym6K97b1)
+[![asciicast](https://asciinema.org/a/646919.svg)](https://asciinema.org/a/646919)
 
 ## Requirements
 
